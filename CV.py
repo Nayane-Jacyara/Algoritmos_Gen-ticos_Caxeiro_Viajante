@@ -8,7 +8,7 @@ problem = tsplib95.load('C:/Users/Nayane Jacyara/Documents/Faculdade/sistemaInte
 nodes = list(problem.get_nodes())
 distances = {(i, j): problem.get_weight(i, j) for i in nodes for j in nodes if i != j}
 
-# Representação do Cromossomo: Cada cromossomo será uma lista que representa uma sequência de cidades
+# Representação do Cromossomo
 def create_chromosome(nodes):
     chromosome = nodes.copy()
     np.random.shuffle(chromosome)
@@ -18,7 +18,7 @@ def create_chromosome(nodes):
 def is_valid_chromosome(chromosome, nodes):
     return sorted(chromosome) == sorted(nodes)
 
-# Função de Avaliação (Fitness): A função de fitness será a soma das distâncias entre as cidades no percurso definido pelo cromossomo
+# Função de Avaliação (Fitness)
 def calculate_fitness(chromosome, distances):
     return sum(distances[(chromosome[i], chromosome[i+1])] for i in range(len(chromosome) - 1)) + distances[(chromosome[-1], chromosome[0])]
 
@@ -34,19 +34,27 @@ def order_crossover(parent1, parent2):
     print("\nPai 1:", parent1)
     print("Pai 2:", parent2)
     
-    # Escolher dois pontos de corte aleatórios para cada pai
-    point1_p1, point2_p1 = np.sort(np.random.randint(0, len(parent1), 2))
-    point1_p2, point2_p2 = np.sort(np.random.randint(0, len(parent2), 2))
-    print(f"\nPontos de corte para Pai 1: {point1_p1}, {point2_p1}")
-    print(f"Pontos de corte para Pai 2: {point1_p2}, {point2_p2}")
+    # tamanho do segmento
+    segment_size = np.random.randint(1, len(parent1))
     
-    # Inicializar os filhos com None ou um marcador indicando posições não preenchidas
+    # ponto inicial aleatório segmento 
+    start_point1 = np.random.randint(0, len(parent1) - segment_size + 1)
+    start_point2 = np.random.randint(0, len(parent2) - segment_size + 1)
+    
+    end_point1 = start_point1 + segment_size
+    end_point2 = start_point2 + segment_size
+    
+    print(f"\nTamanho do segmento: {segment_size}")
+    print(f"Pontos de corte para Pai 1: {start_point1}, {end_point1}")
+    print(f"Pontos de corte para Pai 2: {start_point2}, {end_point2}")
+    
+    # Inicializar os filhos com marcador indicando posições não preenchidas
     child1 = [None] * len(parent1)
     child2 = [None] * len(parent1)
     
-    # Copiar a subsequência do pai para o filho correspondente
-    child1[point1_p1:point2_p1] = parent1[point1_p1:point2_p1]
-    child2[point1_p2:point2_p2] = parent2[point1_p2:point2_p2]
+    # Copiar a subsequência dos pais para os filhos correspondentes
+    child1[start_point1:end_point1] = parent1[start_point1:end_point1]
+    child2[start_point2:end_point2] = parent2[start_point2:end_point2]
     
     # Função para preencher o filho com os genes restantes, mantendo a ordem do segundo pai
     def fill_child(child, parent, start_pos):
@@ -59,15 +67,15 @@ def order_crossover(parent1, parent2):
                 current_position += 1
     
     # Preencher os filhos com os genes restantes do outro pai
-    fill_child(child1, parent2, point2_p1)
-    fill_child(child2, parent1, point2_p2)
+    fill_child(child1, parent2, end_point1)
+    fill_child(child2, parent1, end_point2)
     
     print("\nFilho 1 completo:", child1)
     print("Filho 2 completo:", child2)
     
     return child1, child2
 
-# Função de mutação para trocar dois elementos no cromossomo
+# Função de mutação 
 def mutate(chromosome):
     # Escolher dois índices aleatórios para trocar
     i = np.random.randint(0, len(chromosome))
@@ -85,13 +93,16 @@ def mutate(chromosome):
     chromosome[i], chromosome[j] = chromosome[j], chromosome[i]
     
     # Imprimir o cromossomo depois da mutação
-    print(f"Cromossomo depois da mutação:  {chromosome}\n")
+    print(f"\nCromossomo depois da mutação: {chromosome}\n")
 
+import matplotlib.pyplot as plt
 
-# Algoritmo genético
-def genetic_algorithm(nodes, distances, population_size=30, generations=15, mutation_rate=0.05):
+def genetic_algorithm(nodes, distances, population_size=30, generations=1000, mutation_rate=0.05):
     # Inicialização da população
     population = [create_chromosome(nodes) for _ in range(population_size)]
+    
+    # Lista do melhor fitness de cada geração
+    best_fitness_per_generation = []
     
     for generation in range(generations):
         # Avaliação
@@ -101,6 +112,9 @@ def genetic_algorithm(nodes, distances, population_size=30, generations=15, muta
         best_fitness = min(fitnesses)
         best_chromosome = population[fitnesses.index(best_fitness)]
         print(f"\nGeração {generation + 1}: Melhor distância = {best_fitness}")
+        
+        # Armazenar o melhor fitness da geração atual
+        best_fitness_per_generation.append(best_fitness)
         
         # Nova geração
         new_population = []
@@ -127,8 +141,15 @@ def genetic_algorithm(nodes, distances, population_size=30, generations=15, muta
     best_fitness = min(fitnesses)
     best_chromosome = population[fitnesses.index(best_fitness)]
     
-    return best_chromosome, best_fitness
+    return best_chromosome, best_fitness, best_fitness_per_generation
 
-best_solution, best_distance = genetic_algorithm(nodes, distances)
-print("\nMelhor caminho:", best_solution)
-print("Distância mínima:", best_distance)
+# Executar o algoritmo genético
+best_solution, best_distance, best_fitness_per_generation = genetic_algorithm(nodes, distances)
+
+# Criar o gráfico da evolução do fitness
+plt.plot(best_fitness_per_generation)
+plt.title('Evolução da Distância Mínima ao Longo das Gerações')
+plt.xlabel('Geração')
+plt.ylabel('Distância Mínima')
+plt.grid(True)
+plt.show()
